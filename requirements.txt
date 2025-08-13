@@ -1,0 +1,3 @@
+czifile
+pylibCZIrw
+pandas

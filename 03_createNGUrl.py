@@ -12,6 +12,9 @@ upload_path = "/mnt/d/Xiaoman/001_mAb3D/05-E2/zarr_upload/Ab3D-E2-CC/"
 inputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_CC1-12.csv"
 outputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_CC1-12_url.csv"
 
+default_type_for_1st_pass = 'anti-v-2ch_90ccw'
+first_pass = not os.path.exists(outputlist) or 0
+
 # 4 channels: Far red long exp(anti), Far red short exp(anti), Hoechst(Nuclear), Red(Vessel)
 layer0name = '%22Far%20red%20%28'
 # layer1name = '%22Far%20red%20short%20exp%20%28'
@@ -106,7 +109,7 @@ def create_org_URL_2ch (zarr_file, section, secname, markername, center_width, c
          
 def main():
     # read the inputlist.csv using pandas
-        df = pd.read_csv(inputlist, dtype={'filename': str, 'secnum': str, 'secname': str, 'transferflag': str, 'uploadflag': str, 'orgURL': str, 'shortname': str, 'markername': str, 'type': str, 'width': int, 'height': int, '1%_pixel_c0': int, '99%_pixel_c0': int, '1%_pixel_c1': int, '99%_pixel_c1': int})
+        df = pd.read_csv(inputlist, na_filter=False, dtype={'filename': str, 'secnum': str, 'secname': str, 'transferflag': str, 'uploadflag': str, 'orgURL': str, 'shortname': str, 'markername': str, 'type': str, 'width': int, 'height': int, '1%_pixel_c0': int, '99%_pixel_c0': int, '1%_pixel_c1': int, '99%_pixel_c1': int})
         for index, row in df.iterrows():
             filename = row['filename']
             section = (row['secnum'])
@@ -122,10 +125,12 @@ def main():
             pixel_p1_c1 = row['1%_pixel_c1']
             pixel_p99_c1 = row['99%_pixel_c1']
 
+            if type == '' and first_pass:
+                type = default_type_for_1st_pass
+
             # Define the path to the zarr file
             if isinstance(filename, str) and type != None:
-                zarr_path = os.path.join(upload_path, filename.replace('.czi', '.zarr'))
-                zarr_file = os.path.basename(zarr_path)
+                zarr_file = os.path.basename(filename.replace('.czi', '.zarr'))
 
                 if type == 'anti-h-4ch':
                     shortname, orgURL = create_org_URL_hor_4ch(zarr_file, section, secname, markername, center_width, center_height, layer0name, layer1name, layer2name, layer3name)
@@ -139,12 +144,14 @@ def main():
                     shortname, orgURL = create_org_URL_ver_2ch_90cw(zarr_file, section, secname, markername, center_width, center_height, layer0name, layer1name, pixel_p1_c0, pixel_p99_c0, pixel_p1_c1, pixel_p99_c1)
                 elif type == 'anti-h-2ch':
                     shortname, orgURL = create_org_URL_2ch(zarr_file, section, secname, markername, center_width, center_height, layer0name, layer1name, pixel_p1_c0, pixel_p99_c0, pixel_p1_c1, pixel_p99_c1)
+                else:
+                    raise RuntimeWarning(f"Please specify valid input section type for {filename}, {secname}. Currently '{type}'.")
 
                 df.at[index, 'shortname'] = shortname  # Updating shortname in DataFrame
                 df.at[index, 'orgURL'] = orgURL  # Updating orgURL in DataFrame
 
-            # Write the updated DataFrame back to the input CSV file    
-            df.to_csv(outputlist, index=False)
+        # Write the updated DataFrame back to the input CSV file    
+        df.to_csv(outputlist, index=False)
         print(f"Input Items List was Saved the new DataFrame to {outputlist}")
 
 # Call the main function
