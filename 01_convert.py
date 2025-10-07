@@ -12,6 +12,11 @@ inputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_BS1-27.csv"
 input_dir = "/mnt/d/Xiaoman/001_mAb3D/05-E2/input"
 output_dir = "/mnt/d/Xiaoman/001_mAb3D/05-E2/zarr_upload"
 
+# Ensure output and workfile directories exist
+os.makedirs(os.path.dirname(inputlist), exist_ok=True)
+os.makedirs(output_dir, exist_ok=True)
+
+
 # def Convert czi to ome-zarr using bioformats2raw
 def convert_to_ome_zarr(input_path, output_path, secnum): 
     series = ','.join(str(i) for i in range(secnum))
@@ -110,8 +115,7 @@ def calculate_histogram_and_percentiles(czi_path, percentiles=[1, 99], bins=1638
         print(f"Error processing {czi_path}: {str(e)}")
         return None
     
-def main():
-
+def rawsheet_to_inputlist():
   # Read the CSV file
   df = pd.read_csv(ab3d_sheet)
 
@@ -150,6 +154,10 @@ def main():
   new_df.to_csv(inputlist, index=False)
   print(f"Input Items List was Saved the new DataFrame to {inputlist}")
     
+def main():
+  if 0:
+    rawsheet_to_inputlist()
+
   # Read the inputlist CSV file
   inputlist_df = pd.read_csv(inputlist, dtype={'filename': str, 'transferflag': str, 'uploadflag': str, 'secnum': str, 'width': int, 'height': int, '1%_pixel_c0': int, '99%_pixel_c0': int, '1%_pixel_c1': int, '99%_pixel_c1': int})
 
