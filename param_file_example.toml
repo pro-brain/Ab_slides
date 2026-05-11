@@ -1,0 +1,32 @@
+# Example parameter file for Ab3D uploading pipeline
+#
+# ab3d_sheet: Path to Ab3D screening CSV file
+#   - Used to generate the worksheet file (a.k.a. inputlist)
+#
+# markername_column: Column name in Ab3D sheet for marker names
+#   - Default: 'Official Symbol'
+#   - Used in neuroglancer layer titles
+#
+# worksheet: Path to worksheet CSV file (inputlist)
+#
+# outputlist: Path to output CSV file with neuroglancer URLs
+#
+# czi_dir: Directory containing input CZI files
+#
+# omezarr_dir / zarr_dir: Directory for output(intermediary) Ome-Zarr files
+
+# Inputs:
+ab3d_sheet = '/data/shang/data/Ab3D/Ab3D-E-Screening - Ab3D-E2_CJ-CU.csv'
+#markername_column = 'Official Symbol'   # Default value
+#markername_column = 'Clone ID'
+
+czi_dir = '/run/user/1000/gvfs/smb-share:server=wu_slides,share=slides/Ab3D-E2/Ab3D-E2-CK/'
+# Use a trick to aggregate all CZIs into one folder via symlinks if they are scattered:
+czi_dir = '/data/shang/data/Ab3D/tmp__symlinked_czis/'
+
+
+# Work files and output:
+worksheet = '/data/shang/data/Ab3D/workfile/inputlist_E2_CJ-CU.csv'
+outputlist = '/data/shang/data/Ab3D/workfile/inputlist_E2_CJ-CU_url.csv'
+omezarr_dir = '/data/shang/data/Ab3D/05-E2/zarr_upload/'
+

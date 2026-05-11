@@ -11,11 +11,8 @@ ab3d_sheet = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/Ab3D-E-Screening - Ab3D-E2
 inputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_BS1-27.csv"
 input_dir = "/mnt/d/Xiaoman/001_mAb3D/05-E2/input"
 output_dir = "/mnt/d/Xiaoman/001_mAb3D/05-E2/zarr_upload"
-
-# Ensure output and workfile directories exist
-os.makedirs(os.path.dirname(inputlist), exist_ok=True)
-os.makedirs(output_dir, exist_ok=True)
-
+markername_column = 'Official Symbol'   # column used for neuroglancer layer title, can also consider the 'Clone ID' column for example
+# These variables will be overridden by reading a parameter file supplied via command line arguments
 
 # def Convert czi to ome-zarr using bioformats2raw
 def convert_to_ome_zarr(input_path, output_path, secnum): 
@@ -115,7 +112,7 @@ def calculate_histogram_and_percentiles(czi_path, percentiles=[1, 99], bins=1638
         print(f"Error processing {czi_path}: {str(e)}")
         return None
     
-def rawsheet_to_inputlist():
+def rawsheet_to_inputlist(ab3d_sheet, inputlist, markername_column='Official Symbol'):
   # Read the CSV file
   df = pd.read_csv(ab3d_sheet)
 
@@ -136,7 +133,7 @@ def rawsheet_to_inputlist():
                 'uploadflag': '0',
                 'shortname': None,
                 'orgURL': None,
-                'markername': row['Official Symbol'],
+                'markername': row[markername_column],   # defaults to 'Official Symbol' column, but one can use the Clone ID column for example
                 'type': None,
                 'width': '0',
                 'height': '0',
@@ -155,8 +152,8 @@ def rawsheet_to_inputlist():
   print(f"Input Items List was Saved the new DataFrame to {inputlist}")
     
 def main():
-  if 0:
-    rawsheet_to_inputlist()
+  if ab3d_sheet is not None:
+    rawsheet_to_inputlist(ab3d_sheet, inputlist, markername_column=markername_column)
 
   # Read the inputlist CSV file
   inputlist_df = pd.read_csv(inputlist, dtype={'filename': str, 'transferflag': str, 'uploadflag': str, 'secnum': str, 'width': int, 'height': int, '1%_pixel_c0': int, '99%_pixel_c0': int, '1%_pixel_c1': int, '99%_pixel_c1': int})
@@ -204,8 +201,7 @@ def main():
 
 
     if num_scenes != num_sc_meta:
-      print(f"num_scenes {filename} and {num_scenes} and {num_sc_meta}")
-      print(f"Warning converting file {filename}. Warning: Number of scenes in metadata is different from the secnum in inputlist")
+      print(f"Warning converting file {filename}. Warning: Number of scenes in metadata ({num_sc_meta}) is different from the secnum in inputlist ({num_scenes}).")
 
     # Read czidoc
     czidoc = read_czidoc(input_path)
@@ -246,4 +242,43 @@ def main():
   print(f"All Files Conversion complete. CSV file written to {inputlist}.")
 
 # Call the main function
-main()
+if __name__ == "__main__":
+  
+  import argparse
+  import json
+  import tomllib as tomli
+
+  parser = argparse.ArgumentParser(description='Convert CZI files to OME-Zarr format')
+  parser.add_argument('params', help='Path to JSON or TOML file containing project parameters')
+  parser.add_argument('--new-worksheet', action='store_true', help=
+                      'Generate a new worksheet (inputlist) from the Ab3D screening sheet. A new worksheet is always generated if the file does not exist.')
+  
+  # Parse arguments
+  args = parser.parse_args()
+  
+  # Load parameters from file
+  params_path = args.params
+  if params_path.endswith('.json'):
+      with open(params_path, 'r') as f:
+          params = json.load(f)
+  elif params_path.endswith('.toml'):
+      with open(params_path, 'rb') as f:
+          params = tomli.load(f)
+  else:
+      raise ValueError("Config file must be .json or .toml")
+  
+  # Update global variables
+  #ab3d_sheet = params.get('ab3d_sheet') if args.new_worksheet else None
+  inputlist = params.get('worksheet') or params.get('inputlist')
+  ab3d_sheet = params.get('ab3d_sheet') if (args.new_worksheet or not os.path.exists(inputlist)) else None
+  
+  input_dir = params.get('czi_dir')
+  output_dir = params.get('zarr_dir') or params.get('omezarr_dir')
+  markername_column = params.get('markername_column', 'Official Symbol')
+
+
+  # Ensure output and workfile directories exist
+  #os.makedirs(os.path.dirname(inputlist), exist_ok=True)
+  os.makedirs(output_dir, exist_ok=True)
+  
+  main()

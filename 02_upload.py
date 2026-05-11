@@ -5,6 +5,33 @@ import pandas as pd
 # Define the server name and upload path
 upload_path = "/mnt/d/Xiaoman/001_mAb3D/05-E2/zarr_upload/Ab3D-E2-CA/"
 inputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_CA1-45.csv"
+
+if 1:
+  import argparse
+  import json
+  import tomllib as tomli
+
+  parser = argparse.ArgumentParser(description='step 2')
+  parser.add_argument('params', help='Path to JSON or TOML file containing project parameters')
+  # Parse arguments
+  args = parser.parse_args()
+
+  # Load parameters from file
+  params_path = args.params
+  if params_path.endswith('.json'):
+      with open(params_path, 'r') as f:
+          params = json.load(f)
+  elif params_path.endswith('.toml'):
+      with open(params_path, 'rb') as f:
+          params = tomli.load(f)
+  else:
+      raise ValueError("Parameter file must be .json or .toml")
+
+  # Update global variables
+  inputlist = params.get('worksheet') or params.get('inputlist')
+  upload_path = params.get('zarr_dir') or params.get('omezarr_dir')
+
+
 s3_bucket = 'mAb3D'
 awsbucket_path = 's3://mAb3D/Zarr/'
 
@@ -12,7 +39,7 @@ aws_cli_profile = 'wulab'  # AWS CLI profile to use for endpoint and authenticat
 
 # Function to upload zarr file to AWS S3 bucket
 def upload_to_s3(zarr_file, section_index):
-    zarrpath = upload_path + zarr_file + '/' + str(section_index) + '/'
+    zarrpath = os.path.join(upload_path, zarr_file) + '/' + str(section_index) + '/'
     awspath = awsbucket_path + zarr_file + '/' + str(section_index) + '/'
 
     # aws_command = ['aws', '--endpoint-url', 'https://redcloud.cac.cornell.edu:8443/', '--no-verify', 's3', '--profile', 'CAC', 'cp',  '--recursive', zarrpath, awspath]

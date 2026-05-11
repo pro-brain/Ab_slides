@@ -8,12 +8,38 @@ from urllib.parse import quote
 # after: https://ngapp.mab3d-atlas.com/
 
 # Define the server name and upload path
-upload_path = "/mnt/d/Xiaoman/001_mAb3D/05-E2/zarr_upload/Ab3D-E2-CC/"
 inputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_CC1-12.csv"
 outputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_CC1-12_url.csv"
 
 default_type_for_1st_pass = 'anti-v-2ch_90ccw'
 first_pass = not os.path.exists(outputlist) or 0
+
+if 1:
+  import argparse
+  import json
+  import tomllib as tomli
+
+  parser = argparse.ArgumentParser(description='')
+  parser.add_argument('params', help='Path to JSON or TOML file containing project parameters')
+  # Parse arguments
+  args = parser.parse_args()
+
+  # Load parameters from file
+  params_path = args.params
+  if params_path.endswith('.json'):
+      with open(params_path, 'r') as f:
+          params = json.load(f)
+  elif params_path.endswith('.toml'):
+      with open(params_path, 'rb') as f:
+          params = tomli.load(f)
+  else:
+      raise ValueError("Parameter file must be .json or .toml")
+
+  # Update global variables
+  inputlist = params.get('worksheet') or params.get('inputlist')
+  outputlist = params.get('outputlist')
+
+
 
 # 4 channels: Far red long exp(anti), Far red short exp(anti), Hoechst(Nuclear), Red(Vessel)
 layer0name = '%22Far%20red%20%28'
@@ -107,6 +133,25 @@ def create_org_URL_2ch (zarr_file, section, secname, markername, center_width, c
         print(f"Error creating org URL: {e}")
         return None, None    
          
+def special_sec_type_logic(row):
+    return special_sec_type_logic__consective_groups(row)
+
+def special_sec_type_logic__consective_groups(row):
+    global first_pass
+    global default_type_for_1st_pass
+
+    # assuming consecutive/grouped patterns: 
+    # Current slide would follow the same orientations as the previous one, unless
+    # manually specified in the sheet, at which point we switch to that type for subsequent slides until another manual specification is made.
+    # Make no orientation changes for 'Hu' and 'Gut' sections.
+    if row['secname'].startswith('Hu') or row['secname'].startswith('Gut'):
+        return 'anti-h-2ch'
+    elif row['type'] != '':
+        default_type_for_1st_pass = row['type']
+        return row['type']
+    else:
+        return ''
+    
 def main():
     # read the inputlist.csv using pandas
         df = pd.read_csv(inputlist, na_filter=False, dtype={'filename': str, 'secnum': str, 'secname': str, 'transferflag': str, 'uploadflag': str, 'orgURL': str, 'shortname': str, 'markername': str, 'type': str, 'width': int, 'height': int, '1%_pixel_c0': int, '99%_pixel_c0': int, '1%_pixel_c1': int, '99%_pixel_c1': int})
@@ -125,8 +170,10 @@ def main():
             pixel_p1_c1 = row['1%_pixel_c1']
             pixel_p99_c1 = row['99%_pixel_c1']
 
+            type = special_sec_type_logic(row)
             if type == '' and first_pass:
                 type = default_type_for_1st_pass
+            df.at[index, 'type'] = type  # Update the type in the DataFrame
 
             # Define the path to the zarr file
             if isinstance(filename, str) and type != None:
