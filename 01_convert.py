@@ -158,11 +158,23 @@ def main():
   # Read the inputlist CSV file
   inputlist_df = pd.read_csv(inputlist, dtype={'filename': str, 'transferflag': str, 'uploadflag': str, 'secnum': str, 'width': int, 'height': int, '1%_pixel_c0': int, '99%_pixel_c0': int, '1%_pixel_c1': int, '99%_pixel_c1': int})
 
+  # Append '.czi' extension to filenames if they don't already have it so all downstream
+  # filename matches are consistent.
+  # Note, however, this also require those rows in the google sheet to use a different match
+  # formula for pulling the final URLs to the main sheet, or that we manually strip the
+  # extension again when pasting the worksheet sections into the google sheet.
+  inputlist_df['filename'] = inputlist_df['filename'].apply(
+    lambda x: x if pd.isna(x) or str(x).lower().endswith('.czi') else f"{x}.czi"
+  )
+
   # Create a new DataFrame where the 'filename' column doesn't contain NaN values
   inputlist_df_no_nan = inputlist_df.dropna(subset=['filename'])
 
   # Generate a list of .czi files from the inputlist DataFrame
   czi_files = inputlist_df_no_nan[inputlist_df_no_nan['filename'].str.endswith('.czi')]['filename'].unique().tolist()
+  if not czi_files:
+    print("Warning: Zero .czi filenames found in list. Check input.")
+  
 
   # Iterate over the rows of the inputlist DataFrame
   for filename in czi_files:
