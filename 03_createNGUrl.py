@@ -143,8 +143,9 @@ def special_sec_type_logic__consective_groups(row):
     # assuming consecutive/grouped patterns: 
     # Current slide would follow the same orientations as the previous one, unless
     # manually specified in the sheet, at which point we switch to that type for subsequent slides until another manual specification is made.
-    # Make no orientation changes for 'Hu' and 'Gut' sections.
-    if row['secname'].startswith('Hu') or row['secname'].startswith('Gut'):
+    # Make no orientation changes for 'Hu', 'Gut', or 'Spinal' sections.
+    secname = row['secname']
+    if secname.startswith('Hu') or secname.startswith('Gut') or secname.startswith('Spinal'):
         return 'anti-h-2ch'
     elif row['type'] != '':
         default_type_for_1st_pass = row['type']
