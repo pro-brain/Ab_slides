@@ -142,7 +142,7 @@ def validate(sheet_path):
 
     if not col_errors:  # only run row-level checks if required columns exist
         all_errors.extend(check_filename_prefix(df))
-        all_warnings.extend(check_filename_extension(df))
+        #all_warnings.extend(check_filename_extension(df)) # Disabled: we now don't require the filename to include the .czi part.
         all_warnings.extend(check_scene_autoincrement(df))
 
     for msg in all_errors:

@@ -61,6 +61,8 @@ df = pd.read_csv(inputlist, dtype={'filename': str, 'secnum': str, 'transferflag
 # Traverse filename in upload path
 for index, row in df.iterrows():
   filename = row['filename']
+  # Append '.czi' if missing:
+  filename = filename if filename.lower().endswith('.czi') else f"{filename}.czi"
   section = (row['secnum'])
   transferflag = row['transferflag']
   uploadflag = row['uploadflag']

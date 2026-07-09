@@ -158,6 +158,8 @@ def main():
         df = pd.read_csv(inputlist, na_filter=False, dtype={'filename': str, 'secnum': str, 'secname': str, 'transferflag': str, 'uploadflag': str, 'orgURL': str, 'shortname': str, 'markername': str, 'type': str, 'width': int, 'height': int, '1%_pixel_c0': int, '99%_pixel_c0': int, '1%_pixel_c1': int, '99%_pixel_c1': int})
         for index, row in df.iterrows():
             filename = row['filename']
+            # Append '.czi' if missing:
+            filename = filename if filename.lower().endswith('.czi') else f"{filename}.czi"
             section = (row['secnum'])
             secname = row['secname']
             shortname = row['shortname']
