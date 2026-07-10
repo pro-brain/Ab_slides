@@ -142,6 +142,9 @@ def rawsheet_to_inputlist(ab3d_sheet, inputlist, markername_column='Official Sym
                 '1%_pixel_c1': '0',
                 '99%_pixel_c1': '0'
               }
+              if row[scene] == '-':
+                  # Force user to verify and correct the entries to match the CZI scene indices (no gaps)
+                  raise ValueError(f"Scene value is '-' for filename {row['Czi Filename']} at {scene}. Please correct the input sheet.")
               new_df = new_df._append(new_row, ignore_index=True)
 
   # Set each column as str type
@@ -207,7 +210,8 @@ def main():
 
 
     if num_scenes != num_sc_meta:
-      print(f"Warning converting file {filename}. Warning: Number of scenes in metadata ({num_sc_meta}) is different from the secnum in inputlist ({num_scenes}).")
+      # \033[91m: bright red text
+      print(f"\033[91mWarning converting file {filename}. Warning: Number of scenes in metadata ({num_sc_meta}) is different from the secnum in inputlist ({num_scenes}).\033[0m")
 
     # Read czidoc
     czidoc = read_czidoc(input_path)

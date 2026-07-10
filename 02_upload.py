@@ -5,6 +5,7 @@ import pandas as pd
 # Define the server name and upload path
 upload_path = "/mnt/d/Xiaoman/001_mAb3D/05-E2/zarr_upload/Ab3D-E2-CA/"
 inputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_CA1-45.csv"
+verbose = True  # Set to True for detailed output, False for minimal output
 
 if 1:
   import argparse
@@ -13,6 +14,7 @@ if 1:
 
   parser = argparse.ArgumentParser(description='step 2')
   parser.add_argument('params', help='Path to JSON or TOML file containing project parameters')
+  parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output from aws upload command')
   # Parse arguments
   args = parser.parse_args()
 
@@ -30,6 +32,7 @@ if 1:
   # Update global variables
   inputlist = params.get('worksheet') or params.get('inputlist')
   upload_path = params.get('zarr_dir') or params.get('omezarr_dir')
+  verbose = args.verbose
 
 
 s3_bucket = 'mAb3D'
@@ -43,7 +46,9 @@ def upload_to_s3(zarr_file, section_index):
     awspath = awsbucket_path + zarr_file + '/' + str(section_index) + '/'
 
     # aws_command = ['aws', '--endpoint-url', 'https://redcloud.cac.cornell.edu:8443/', '--no-verify', 's3', '--profile', 'CAC', 'cp',  '--recursive', zarrpath, awspath]
-    aws_command = ['aws', 's3', '--profile', aws_cli_profile, 'cp',  '--recursive', zarrpath, awspath]
+    aws_command = ['aws', 's3', '--profile', aws_cli_profile, 'cp',  '--recursive', 
+                   '--quiet' if not verbose else '', 
+                   zarrpath, awspath]
   
     result = subprocess.run(aws_command, stderr=subprocess.PIPE)
 
@@ -59,6 +64,7 @@ def upload_to_s3(zarr_file, section_index):
 df = pd.read_csv(inputlist, dtype={'filename': str, 'secnum': str, 'transferflag': str, 'uploadflag': str})
 
 # Traverse filename in upload path
+counts = {'success': 0, 'skipped': 0, 'error': 0}
 for index, row in df.iterrows():
   filename = row['filename']
   # Append '.czi' if missing:
@@ -84,13 +90,20 @@ for index, row in df.iterrows():
             print(f"Uploaded file {filename} section {section} to S3 bucket {s3_bucket}.")
             # Update the upload flag to 1
             df.at[index, 'uploadflag'] = '1'
-            df.to_csv(inputlist, index=False)
+            counts['success'] += 1
         except Exception as e:
             print(f"Error uploading file {filename}: {e}")
             # Update the upload flag to 'e'
             df.at[index, 'uploadflag'] = 'e'
+            counts['error'] += 1
 
-      # Write the updated DataFrame back to the input CSV file    
-      df.to_csv(inputlist, index=False)
+        # Write the updated DataFrame back to the input CSV file
+        df.to_csv(inputlist, index=False)
 
-print(f"Updated inputlist CSV file written to {inputlist}.")
+      else:
+        print(f"Skipped file {filename} section {section}: uploadflag={uploadflag}, transferflag={transferflag}, section={section}, exists={os.path.exists(zarr_path)}")
+        counts['skipped'] += 1
+
+if counts['success'] > 0 or counts['error'] > 0:
+    print(f"Updated inputlist CSV file written to {inputlist}.")
+print(f"Upload summary - Success: {counts['success']}, Skipped: {counts['skipped']}, Error: {counts['error']}")
