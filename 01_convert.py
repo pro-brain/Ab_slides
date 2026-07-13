@@ -119,15 +119,19 @@ def rawsheet_to_inputlist(ab3d_sheet, inputlist, markername_column='Official Sym
   # Create a new DataFrame with the required columns
   new_df = pd.DataFrame(columns=['filename', 'secnum', 'secname', 'transferflag', 'uploadflag', 'orgURL', 'shortname', 'markername', 'type', 'width', 'height', "1%_pixel_c0", "99%_pixel_c0", "1%_pixel_c1", "99%_pixel_c1"])
 
+  # Column headers 'Scene 1', 'Scene 2', ... are for human readability in the sheet only;
+  # their numbers do NOT correspond to CZI scene indices (consider renaming to A, B, C... in the future).
   scene_columns = ['Scene 1', 'Scene 2', 'Scene 3', 'Scene 4', 'Scene 5', 'Scene 6']
 
   for index, row in df.iterrows():
       if not pd.isnull(row['Czi Filename']):
-          for i, scene in enumerate(scene_columns):
-            if pd.notnull(row[scene]):  # Check if the 'Scene' value is not null          
+          scene_counter = 0
+          for scene in scene_columns:
+            # Skip empty/null and '-' (scene absent from CZI), or manual notes as indicated by starting with '(' (not an actual scene).
+            if pd.notnull(row[scene]) and row[scene] != '-' and not row[scene].startswith('('):
               new_row = {
-                'filename': row['Czi Filename'],             
-                'secnum': i,
+                'filename': row['Czi Filename'],
+                'secnum': scene_counter,  # sequential index among scenes that actually exist in the CZI
                 'secname': row[scene],
                 'transferflag': '0',
                 'uploadflag': '0',
@@ -142,10 +146,8 @@ def rawsheet_to_inputlist(ab3d_sheet, inputlist, markername_column='Official Sym
                 '1%_pixel_c1': '0',
                 '99%_pixel_c1': '0'
               }
-              if row[scene] == '-':
-                  # Force user to verify and correct the entries to match the CZI scene indices (no gaps)
-                  raise ValueError(f"Scene value is '-' for filename {row['Czi Filename']} at {scene}. Please correct the input sheet.")
               new_df = new_df._append(new_row, ignore_index=True)
+              scene_counter += 1
 
   # Set each column as str type
   new_df = new_df.astype(str)
