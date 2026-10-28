@@ -7,6 +7,12 @@ upload_path = "/mnt/d/Xiaoman/001_mAb3D/05-E2/zarr_upload/Ab3D-E2-CA/"
 inputlist = "/mnt/d/Xiaoman/001_mAb3D/05-E2/workfile/inputlist_E2_CA1-45.csv"
 verbose = True  # Set to True for detailed output, False for minimal output
 
+aws_cli_profile = 'app_ab3d'  # AWS CLI profile to use for endpoint and authentication
+
+# Constants for S3 bucket and path
+s3_bucket = 'mAb3D'
+awsbucket_path = 's3://mAb3D/Zarr/'
+
 if 1:
   import argparse
   import json
@@ -32,13 +38,8 @@ if 1:
   # Update global variables
   inputlist = params.get('worksheet') or params.get('inputlist')
   upload_path = params.get('zarr_dir') or params.get('omezarr_dir')
+  aws_cli_profile = params.get('aws_cli_profile', aws_cli_profile)
   verbose = args.verbose
-
-
-s3_bucket = 'mAb3D'
-awsbucket_path = 's3://mAb3D/Zarr/'
-
-aws_cli_profile = 'wulab'  # AWS CLI profile to use for endpoint and authentication
 
 # Function to upload zarr file to AWS S3 bucket
 def upload_to_s3(zarr_file, section_index):
